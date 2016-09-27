@@ -29,8 +29,10 @@ outnamecomp="$nameprefix"_680_comp.gif
 
 if $checkdither; then
   # determine optimal dithering level
-  firstfile="$(ls "$dir"/*.png | head -1)"
-  echo "Determining initial dither level based on $firstfile"
+  filelist="$(ls "$dir"/*.png)"
+  filecount="$(wc -l <<< "$filelist")"
+  midfile="$(head -n $((filecount / 2)) <<< "$filelist" | tail -1)"
+  announce "Determining initial dither level based on $midfile"
   ditherlevel=1
   colours=0
   maxditherlevel=13
