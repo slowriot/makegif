@@ -48,7 +48,7 @@ if $checkdither; then
   colours=$(convert -limit thread $threads "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
   while [ "$colours" -ge 256 ]; do
     ((ditherlevel--))
-    echo "No, that's too high ($colours colours), retrying with dither level $ditherlevel..."
+    announce "No, that's too high ($colours colours), retrying with dither level $ditherlevel..."
     colours=$(convert -limit thread $threads "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
   done
   announce "Optimal dither level is $ditherlevel for $colours colours."
