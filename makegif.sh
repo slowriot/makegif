@@ -13,8 +13,16 @@ if [ -z "$dir" ]; then
   exit 1
 fi
 
-echo "Animating $dir/*.png..."
-say -v$voice "Animating $dir..." &
+threads=$(grep -c "^processor" /proc/cpuinfo)
+
+function announce {
+  echo "$1"
+  if [ ! -z "$(which say)" ]; then
+    say -v$voice "$1" &
+  fi
+}
+
+announce "Animating $dir with $threads threads..."
 nameprefix="$(sed 's/ /_/g;s/\///g' <<< "$dir")"
 outname="$nameprefix"_680.gif
 outnamecomp="$nameprefix"_680_comp.gif
@@ -29,21 +37,19 @@ if $checkdither; then
   while [ "$colours" -lt 256 ] && [ "$ditherlevel" -lt "$maxditherlevel" ]; do
     ((ditherlevel++))
     oldcolours=$colours
-    colours=$(convert "$firstfile" -ordered-dither o8x8,$ditherlevel -append -format %k info:)
+    colours=$(convert -limit thread $threads "$midfile" -ordered-dither o8x8,$ditherlevel -append -format %k info:)
     echo "Dither level $ditherlevel = $colours colours"
   done
   ((ditherlevel--))
   colours=$oldcolours
-  echo "Preliminary optimal dither level seems to be $ditherlevel for $colours colours, confirming over entire image set..."
-  say -v$voice "Preliminary optimal dither level seems to be $ditherlevel for $colours colours, confirming over entire image set..."
-  colours=$(convert "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
+  announce "Preliminary optimal dither level seems to be $ditherlevel for $colours colours, confirming over entire image set..."
+  colours=$(convert -limit thread $threads "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
   while [ "$colours" -ge 256 ]; do
     ((ditherlevel--))
     echo "No, that's too high ($colours colours), retrying with dither level $ditherlevel..."
-    colours=$(convert "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
+    colours=$(convert -limit thread $threads "$dir"/*.png -ordered-dither o8x8,$ditherlevel -append -format %k info:)
   done
-  echo "Optimal dither level is $ditherlevel for $colours colours."
-  say -v$voice "Optimal dither level is $ditherlevel for $colours colours."
+  announce "Optimal dither level is $ditherlevel for $colours colours."
 else
   ditherlevel=11
 fi
@@ -51,6 +57,8 @@ fi
 #options="-verbose -monitor"
 #time convert $options -loop 0 -delay 1x30 -dispose none -type Palette +map "$dir"/*.png "$outname"
 time convert \
+  -limit thread $threads \
+  -monitor \
   -loop 0 \
   -delay 1x30 \
   -dispose previous \
@@ -69,17 +77,16 @@ time convert \
 #  +remap \
 
 if [ "$?" != 0 ]; then
-  say -v$voice "There was a problem animating $dir."
+  announce "There was a problem animating $dir."
   echo "Exited with an error."
   exit 1
 fi
 
 size=$(du -sh "$outname" | cut -f 1 | sed 's/K/ kilobytes/;s/M/ megabytes/;s/G/ gigabytes/;')
-say -v$voice "Animated GIF of $dir rendered, size $size, optimising..." &
+announce "Animated GIF of $dir rendered, size $size, optimising..."
 echo "Rendered: $outname $size, optimising..."
 
 gifsicle -O3 --lossy=80 --colors=256 -o "$outnamecomp" "$outname"
 
 sizecomp=$(du -sh "$outnamecomp" | cut -f 1 | sed 's/K/ kilobytes/;s/M/ megabytes/;s/G/ gigabytes/;')
-say -v$voice "Animated GIF of $dir ready, size $sizecomp." &
-echo "Ready: $outnamecomp $sizecomp"
+announce "Animated GIF of $dir ready, size $sizecomp."
