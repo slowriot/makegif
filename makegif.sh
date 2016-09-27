@@ -13,6 +13,16 @@ if [ -z "$dir" ]; then
   exit 1
 fi
 
+# check we have the right gifsicle fork dependency
+if [ -z "$(which gifsicle)" ]; then
+  echo "This script requires a lossy-enabled fork of gifsicle to operate: https://github.com/pornel/giflossy"
+  exit 1
+fi
+if gifsicle --lossy=80 2>&1 | grep -q "unrecognized option"; then
+  echo "You have gifsicle, but it does not support lossy encoding.  Please get this fork: https://github.com/pornel/giflossy"
+  exit 1
+fi
+
 threads=$(grep -c "^processor" /proc/cpuinfo)
 
 function announce {
@@ -24,8 +34,7 @@ function announce {
 
 announce "Animating $dir with $threads threads..."
 nameprefix="$(sed 's/ /_/g;s/\///g' <<< "$dir")"
-outname="$nameprefix"_680.gif
-outnamecomp="$nameprefix"_680_comp.gif
+outname="$nameprefix".gif
 
 if $checkdither; then
   # determine optimal dithering level
@@ -88,7 +97,7 @@ size=$(du -sh "$outname" | cut -f 1 | sed 's/K/ kilobytes/;s/M/ megabytes/;s/G/ 
 announce "Animated GIF of $dir rendered, size $size, optimising..."
 echo "Rendered: $outname $size, optimising..."
 
-gifsicle -O3 --lossy=80 --colors=256 -o "$outnamecomp" "$outname"
+outnamecomp=$(./gifcompress.sh "$outname")
 
 sizecomp=$(du -sh "$outnamecomp" | cut -f 1 | sed 's/K/ kilobytes/;s/M/ megabytes/;s/G/ gigabytes/;')
 announce "Animated GIF of $dir ready, size $sizecomp."
