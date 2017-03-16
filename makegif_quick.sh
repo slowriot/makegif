@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+  echo "Usage: $0 <list of files to make into a gif>"
+fi
+
 tempdir="$(mktemp -d -p /dev/shm -t makegif-XXXXXX)"
 mkdir -p "$tempdir"
 cp $@ "$tempdir"
