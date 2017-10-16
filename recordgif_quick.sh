@@ -1,8 +1,14 @@
 #!/bin/bash
 
-size_x=512
-size_y=512
-duration=5
+#size_x=512
+#size_y=512
+size_x=1280
+size_y=720
+if [ -z "$1" ]; then
+  duration=5
+else
+  duration="$1"
+fi
 outfile="out.gif"
 
 screensize=$(xwininfo -root | awk '/-geo/{print $2}')
